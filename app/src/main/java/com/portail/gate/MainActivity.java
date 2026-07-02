@@ -2,7 +2,11 @@ package com.portail.gate;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -17,6 +21,11 @@ import android.widget.Toast;
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingRequest;
 import com.google.android.gms.location.LocationServices;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class MainActivity extends Activity {
 
@@ -44,9 +53,72 @@ public class MainActivity extends Activity {
         radius.setText(p.getString("radius", "300"));
         btNames.setText(p.getString("btNames", "Toyota Multimedia, Moto"));
 
+        ((Button) findViewById(R.id.btnPickBt)).setOnClickListener(v -> showBtPicker());
         ((Button) findViewById(R.id.btnPerms)).setOnClickListener(v -> requestPerms());
         ((Button) findViewById(R.id.btnSave)).setOnClickListener(v -> save());
         ((Button) findViewById(R.id.btnTest)).setOnClickListener(v -> test());
+    }
+
+    // Liste les appareils Bluetooth appaires et laisse cocher ceux autorises
+    private void showBtPicker() {
+        BluetoothManager bm = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+        BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : null;
+        if (adapter == null) {
+            Toast.makeText(this, "Bluetooth indisponible", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Set<BluetoothDevice> bonded;
+        try {
+            bonded = adapter.getBondedDevices();
+        } catch (SecurityException e) {
+            Toast.makeText(this, "Autorise d'abord les permissions (bouton 1)", Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (bonded == null || bonded.isEmpty()) {
+            Toast.makeText(this, "Aucun appareil Bluetooth appaire", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        final List<String> names = new ArrayList<>();
+        for (BluetoothDevice d : bonded) {
+            String n = null;
+            try {
+                n = d.getName();
+            } catch (SecurityException e) {
+                // ignore
+            }
+            if (n == null) n = d.getAddress();
+            if (!names.contains(n)) names.add(n);
+        }
+
+        final Set<String> current = new HashSet<>();
+        for (String s : btNames.getText().toString().split(",")) {
+            String t = s.trim();
+            if (!t.isEmpty()) current.add(t);
+        }
+
+        final boolean[] checked = new boolean[names.size()];
+        for (int i = 0; i < names.size(); i++) {
+            checked[i] = current.contains(names.get(i));
+        }
+
+        CharSequence[] items = names.toArray(new CharSequence[0]);
+        new AlertDialog.Builder(this)
+                .setTitle("Appareils Bluetooth autorises")
+                .setMultiChoiceItems(items, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
+                .setPositiveButton("OK", (dialog, which) -> {
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < names.size(); i++) {
+                        if (checked[i]) {
+                            if (sb.length() > 0) sb.append(", ");
+                            sb.append(names.get(i));
+                        }
+                    }
+                    btNames.setText(sb.toString());
+                })
+                .setNegativeButton("Annuler", null)
+                .show();
     }
 
     private void requestPerms() {
@@ -62,7 +134,6 @@ public class MainActivity extends Activity {
     public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
         super.onRequestPermissionsResult(req, perms, res);
         if (req == 100) {
-            // La localisation en arriere-plan doit etre demandee separement (Android 11+)
             requestPermissions(new String[]{"android.permission.ACCESS_BACKGROUND_LOCATION"}, 101);
         } else if (req == 101) {
             Toast.makeText(this, "Verifie: Localisation = 'Toujours autoriser'", Toast.LENGTH_LONG).show();

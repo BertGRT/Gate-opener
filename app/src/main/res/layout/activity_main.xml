@@ -27,8 +27,9 @@
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rayon (metres)"/>
         <EditText android:id="@+id/radius" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal" android:text="300"/>
 
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Bluetooth autorises (noms separes par des virgules)"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Bluetooth autorises"/>
         <EditText android:id="@+id/btNames" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="Toyota Multimedia, Moto"/>
+        <Button android:id="@+id/btnPickBt" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Choisir dans mes appareils Bluetooth"/>
 
         <Button android:id="@+id/btnPerms" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="1. Autoriser les permissions"/>
         <Button android:id="@+id/btnSave" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="2. Enregistrer et activer"/>
