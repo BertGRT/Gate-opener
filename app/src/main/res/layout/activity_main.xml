@@ -24,6 +24,8 @@
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Longitude maison"/>
         <EditText android:id="@+id/lng" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal|numberSigned"/>
 
+        <Button android:id="@+id/btnPickMap" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Choisir mon domicile sur la carte"/>
+
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rayon (metres)"/>
         <EditText android:id="@+id/radius" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal" android:text="300"/>
 

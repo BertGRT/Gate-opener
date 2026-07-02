@@ -53,10 +53,32 @@ public class MainActivity extends Activity {
         radius.setText(p.getString("radius", "300"));
         btNames.setText(p.getString("btNames", "Toyota Multimedia, Moto"));
 
+        ((Button) findViewById(R.id.btnPickMap)).setOnClickListener(v -> openMap());
         ((Button) findViewById(R.id.btnPickBt)).setOnClickListener(v -> showBtPicker());
         ((Button) findViewById(R.id.btnPerms)).setOnClickListener(v -> requestPerms());
         ((Button) findViewById(R.id.btnSave)).setOnClickListener(v -> save());
         ((Button) findViewById(R.id.btnTest)).setOnClickListener(v -> test());
+    }
+
+    // Ouvre la carte pour choisir le domicile
+    private void openMap() {
+        Intent i = new Intent(this, MapActivity.class);
+        try {
+            i.putExtra("lat", Double.parseDouble(lat.getText().toString().trim()));
+            i.putExtra("lng", Double.parseDouble(lng.getText().toString().trim()));
+        } catch (Exception e) {
+            // pas de coords valides -> la carte utilisera son point par defaut
+        }
+        startActivityForResult(i, 200);
+    }
+
+    @Override
+    protected void onActivityResult(int req, int resultCode, Intent data) {
+        super.onActivityResult(req, resultCode, data);
+        if (req == 200 && resultCode == RESULT_OK && data != null) {
+            lat.setText(String.valueOf(data.getDoubleExtra("lat", 0)));
+            lng.setText(String.valueOf(data.getDoubleExtra("lng", 0)));
+        }
     }
 
     // Liste les appareils Bluetooth appaires et laisse cocher ceux autorises
