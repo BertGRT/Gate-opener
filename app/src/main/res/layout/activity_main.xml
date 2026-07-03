@@ -36,6 +36,7 @@
         <Button android:id="@+id/btnPerms" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="1. Autoriser les permissions"/>
         <Button android:id="@+id/btnSave" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="2. Enregistrer et activer"/>
         <Button android:id="@+id/btnTest" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Tester l'ouverture maintenant"/>
+        <Button android:id="@+id/btnLog" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Voir le journal"/>
 
         <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="12dp" android:text=""/>
 

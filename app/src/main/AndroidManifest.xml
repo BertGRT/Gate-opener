@@ -28,6 +28,10 @@
             android:name=".MapActivity"
             android:exported="false"/>
 
+        <activity
+            android:name=".LogActivity"
+            android:exported="false"/>
+
         <receiver
             android:name=".GeofenceReceiver"
             android:exported="false"/>
