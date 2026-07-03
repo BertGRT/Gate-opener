@@ -3,24 +3,17 @@ package com.portail.gate;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.PendingIntent;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.google.android.gms.location.Geofence;
-import com.google.android.gms.location.GeofencingRequest;
-import com.google.android.gms.location.LocationServices;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -170,12 +163,10 @@ public class MainActivity extends Activity {
         e.putString("radius", radius.getText().toString().trim());
         e.putString("btNames", btNames.getText().toString());
         e.apply();
-        try {
-            registerGeofence(this);
-            status.setText("Enregistre. (voir la notif / le journal)");
-        } catch (Exception ex) {
-            status.setText("Erreur: " + ex.getMessage());
-        }
+
+        startMonitoring(this);
+        Notif.show(this, "Portail", "Surveillance demarree (service actif)");
+        status.setText("Surveillance active (service en fond).");
     }
 
     private void test() {
@@ -187,46 +178,8 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    static void registerGeofence(Context ctx) {
-        SharedPreferences p = ctx.getSharedPreferences("cfg", Context.MODE_PRIVATE);
-        double la, lo;
-        float ra;
-        try {
-            la = Double.parseDouble(p.getString("lat", "0"));
-            lo = Double.parseDouble(p.getString("lng", "0"));
-            ra = Float.parseFloat(p.getString("radius", "300"));
-        } catch (Exception e) {
-            Notif.show(ctx, "Portail", "Coordonnees invalides");
-            return;
-        }
-
-        Geofence g = new Geofence.Builder()
-                .setRequestId("maison")
-                .setCircularRegion(la, lo, ra)
-                .setExpirationDuration(Geofence.NEVER_EXPIRE)
-                .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
-                .setNotificationResponsiveness(0)
-                .build();
-
-        GeofencingRequest req = new GeofencingRequest.Builder()
-                .setInitialTrigger(0)
-                .addGeofence(g)
-                .build();
-
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= 31) {
-            flags |= PendingIntent.FLAG_MUTABLE;
-        }
-        Intent i = new Intent(ctx, GeofenceReceiver.class);
-        PendingIntent pi = PendingIntent.getBroadcast(ctx, 0, i, flags);
-
-        if (ctx.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            Notif.show(ctx, "Portail", "Permission localisation manquante");
-            return;
-        }
-        LocationServices.getGeofencingClient(ctx).addGeofences(req, pi)
-                .addOnSuccessListener(a -> Notif.show(ctx, "Portail", "Geofence enregistree OK (rayon " + ra + " m)"))
-                .addOnFailureListener(e -> Notif.show(ctx, "Portail", "Echec geofence: " + e.getMessage()));
+    // Demarre le service de surveillance en avant-plan
+    static void startMonitoring(Context ctx) {
+        ctx.startForegroundService(new Intent(ctx, LocationService.class));
     }
 }

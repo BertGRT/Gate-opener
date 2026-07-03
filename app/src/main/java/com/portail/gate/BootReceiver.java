@@ -7,7 +7,7 @@ import android.content.Intent;
 public class BootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context ctx, Intent intent) {
-        // Re-enregistre la geofence apres un redemarrage du telephone
-        MainActivity.registerGeofence(ctx);
+        // Relance la surveillance apres un redemarrage du telephone
+        MainActivity.startMonitoring(ctx);
     }
 }
