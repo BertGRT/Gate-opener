@@ -51,6 +51,10 @@ public class MainActivity extends Activity {
         ((Button) findViewById(R.id.btnPerms)).setOnClickListener(v -> requestPerms());
         ((Button) findViewById(R.id.btnSave)).setOnClickListener(v -> save());
         ((Button) findViewById(R.id.btnTest)).setOnClickListener(v -> test());
+        ((Button) findViewById(R.id.btnSimulate)).setOnClickListener(v -> {
+            Notif.show(this, "Portail", "Simulation d'arrivee (test BT)");
+            Trigger.checkBtAndOpen(this);
+        });
         ((Button) findViewById(R.id.btnLog)).setOnClickListener(v -> startActivity(new Intent(this, LogActivity.class)));
     }
 
