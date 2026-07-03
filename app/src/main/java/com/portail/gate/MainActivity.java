@@ -22,7 +22,7 @@ import java.util.Set;
 
 public class MainActivity extends Activity {
 
-    private EditText apiKey, deviceId, lat, lng, radius, btNames;
+    private EditText apiKey, deviceId, lat, lng, radius, radiusClose, btNames;
     private TextView status;
 
     @Override
@@ -35,6 +35,7 @@ public class MainActivity extends Activity {
         lat = findViewById(R.id.lat);
         lng = findViewById(R.id.lng);
         radius = findViewById(R.id.radius);
+        radiusClose = findViewById(R.id.radiusClose);
         btNames = findViewById(R.id.btNames);
         status = findViewById(R.id.status);
 
@@ -44,7 +45,8 @@ public class MainActivity extends Activity {
         lat.setText(p.getString("lat", ""));
         lng.setText(p.getString("lng", ""));
         radius.setText(p.getString("radius", "300"));
-        btNames.setText(p.getString("btNames", "Toyota Multimedia, Moto"));
+        radiusClose.setText(p.getString("radiusClose", "100"));
+        btNames.setText(p.getString("btNames", "CAR MULTIMEDIA, Moto"));
 
         ((Button) findViewById(R.id.btnPickMap)).setOnClickListener(v -> openMap());
         ((Button) findViewById(R.id.btnPickBt)).setOnClickListener(v -> showBtPicker());
@@ -53,7 +55,7 @@ public class MainActivity extends Activity {
         ((Button) findViewById(R.id.btnTest)).setOnClickListener(v -> test());
         ((Button) findViewById(R.id.btnSimulate)).setOnClickListener(v -> {
             Notif.show(this, "Portail", "Simulation d'arrivee (test BT)");
-            Trigger.checkBtAndOpen(this);
+            Trigger.checkBtAndOpen(this, "ouverture");
         });
         ((Button) findViewById(R.id.btnLog)).setOnClickListener(v -> startActivity(new Intent(this, LogActivity.class)));
     }
@@ -165,11 +167,12 @@ public class MainActivity extends Activity {
         e.putString("lat", lat.getText().toString().trim());
         e.putString("lng", lng.getText().toString().trim());
         e.putString("radius", radius.getText().toString().trim());
+        e.putString("radiusClose", radiusClose.getText().toString().trim());
         e.putString("btNames", btNames.getText().toString());
         e.apply();
 
         startMonitoring(this);
-        Notif.show(this, "Portail", "Surveillance demarree (service actif)");
+        Notif.show(this, "Portail", "Surveillance demarree (arrivee + depart)");
         status.setText("Surveillance active (service en fond).");
     }
 

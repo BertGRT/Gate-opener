@@ -13,12 +13,11 @@ import java.util.Set;
 
 public class Trigger {
 
-    private static long lastOpenMs = 0;
+    private static long lastActionMs = 0;
     private static final long COOLDOWN_MS = 60000;
 
-    // Verifie les Bluetooth connectes (profils A2DP audio ET HEADSET mains-libres)
-    // puis ouvre si un appareil autorise est present. Anti-rebond de 60 s.
-    static void checkBtAndOpen(final Context ctx) {
+    // action = "ouverture" ou "fermeture" (meme impulsion envoyee au portail, juste pour le journal)
+    static void checkBtAndOpen(final Context ctx, final String action) {
         BluetoothManager bm = (BluetoothManager) ctx.getSystemService(Context.BLUETOOTH_SERVICE);
         final BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : null;
         if (adapter == null) {
@@ -51,21 +50,20 @@ public class Trigger {
                     } finally {
                         adapter.closeProfileProxy(profile, proxy);
                     }
-                    done(ctx, found, pending, finished);
+                    done(ctx, found, pending, finished, action);
                 }
 
                 @Override
                 public void onServiceDisconnected(int profile) {
-                    done(ctx, found, pending, finished);
+                    done(ctx, found, pending, finished, action);
                 }
             }, prof);
 
-            if (!started) done(ctx, found, pending, finished);
+            if (!started) done(ctx, found, pending, finished, action);
         }
     }
 
-    // Finalise UNE seule fois, quand les 2 profils ont repondu
-    private static synchronized void done(Context ctx, Set<String> found, int[] pending, boolean[] finished) {
+    private static synchronized void done(Context ctx, Set<String> found, int[] pending, boolean[] finished, String action) {
         pending[0]--;
         if (pending[0] > 0) return;
         if (finished[0]) return;
@@ -81,20 +79,20 @@ public class Trigger {
             }
         }
 
-        Notif.show(ctx, "Portail", "BT connectes: " + found + " -> autorise: " + (allowed ? "OUI" : "NON"));
+        Notif.show(ctx, "Portail", "[" + action + "] BT connectes: " + found + " -> autorise: " + (allowed ? "OUI" : "NON"));
 
         if (!allowed) return;
 
         long now = SystemClock.elapsedRealtime();
-        if (now - lastOpenMs < COOLDOWN_MS) {
-            Notif.show(ctx, "Portail", "Ouverture ignoree (anti-rebond < 60s)");
+        if (now - lastActionMs < COOLDOWN_MS) {
+            Notif.show(ctx, "Portail", "[" + action + "] ignoree (anti-rebond < 60s)");
             return;
         }
-        lastOpenMs = now;
+        lastActionMs = now;
 
         new Thread(() -> {
             String r = SinricClient.open(ctx);
-            Notif.show(ctx, "Portail", "Ouverture envoyee: " + r);
+            Notif.show(ctx, "Portail", action + " envoyee: " + r);
         }).start();
     }
 }
