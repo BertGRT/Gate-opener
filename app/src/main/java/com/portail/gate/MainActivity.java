@@ -60,7 +60,6 @@ public class MainActivity extends Activity {
         ((Button) findViewById(R.id.btnTest)).setOnClickListener(v -> test());
     }
 
-    // Ouvre la carte pour choisir le domicile
     private void openMap() {
         Intent i = new Intent(this, MapActivity.class);
         try {
@@ -81,7 +80,6 @@ public class MainActivity extends Activity {
         }
     }
 
-    // Liste les appareils Bluetooth appaires et laisse cocher ceux autorises
     private void showBtPicker() {
         BluetoothManager bm = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : null;
@@ -173,7 +171,7 @@ public class MainActivity extends Activity {
         e.apply();
         try {
             registerGeofence(this);
-            status.setText("Geofence activee. En attente d'arrivee.");
+            status.setText("Enregistre. (voir la notif 'Geofence enregistree')");
         } catch (Exception ex) {
             status.setText("Erreur: " + ex.getMessage());
         }
@@ -184,6 +182,7 @@ public class MainActivity extends Activity {
         new Thread(() -> {
             final String r = SinricClient.open(this);
             runOnUiThread(() -> status.setText("Test: " + r));
+            Notif.show(this, "Portail", "Test manuel: " + r);
         }).start();
     }
 
@@ -196,6 +195,7 @@ public class MainActivity extends Activity {
             lo = Double.parseDouble(p.getString("lng", "0"));
             ra = Float.parseFloat(p.getString("radius", "300"));
         } catch (Exception e) {
+            Notif.show(ctx, "Portail", "Coordonnees invalides");
             return;
         }
 
@@ -221,8 +221,11 @@ public class MainActivity extends Activity {
 
         if (ctx.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
+            Notif.show(ctx, "Portail", "Permission localisation manquante");
             return;
         }
-        LocationServices.getGeofencingClient(ctx).addGeofences(req, pi);
+        LocationServices.getGeofencingClient(ctx).addGeofences(req, pi)
+                .addOnSuccessListener(a -> Notif.show(ctx, "Portail", "Geofence enregistree OK (rayon " + ra + " m)"))
+                .addOnFailureListener(e -> Notif.show(ctx, "Portail", "Echec geofence: " + e.getMessage()));
     }
 }
