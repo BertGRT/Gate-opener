@@ -32,6 +32,9 @@
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rayon FERMETURE - depart (m), plus petit"/>
         <EditText android:id="@+id/radiusClose" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal" android:text="100"/>
 
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Intervalle GPS (s) - petit = reactif, + de batterie"/>
+        <EditText android:id="@+id/interval" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="number" android:text="15"/>
+
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Bluetooth autorises"/>
         <EditText android:id="@+id/btNames" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="text" android:hint="CAR MULTIMEDIA, Moto"/>
         <Button android:id="@+id/btnPickBt" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Choisir dans mes appareils Bluetooth"/>

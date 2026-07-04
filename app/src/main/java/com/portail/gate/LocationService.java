@@ -30,7 +30,6 @@ public class LocationService extends Service {
         super.onCreate();
         startForegroundNotif();
         client = LocationServices.getFusedLocationProviderClient(this);
-        startUpdates();
         Journal.add(this, "Service de surveillance demarre");
     }
 
@@ -47,10 +46,26 @@ public class LocationService extends Service {
         startForeground(42, n);
     }
 
+    // (Re)demarre la demande de localisation avec l'intervalle courant
     private void startUpdates() {
-        LocationRequest req = new LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 30000)
-                .setMinUpdateIntervalMillis(15000)
+        if (client == null) return;
+        if (callback != null) {
+            client.removeLocationUpdates(callback);
+        }
+
+        int intervalSec;
+        try {
+            intervalSec = Integer.parseInt(getSharedPreferences("cfg", MODE_PRIVATE).getString("interval", "15"));
+        } catch (Exception e) {
+            intervalSec = 15;
+        }
+        if (intervalSec < 5) intervalSec = 5;
+        long ms = intervalSec * 1000L;
+
+        LocationRequest req = new LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, ms)
+                .setMinUpdateIntervalMillis(ms)
                 .build();
+
         callback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult result) {
@@ -58,8 +73,11 @@ public class LocationService extends Service {
                 if (loc != null) handleLocation(loc);
             }
         };
+        firstFix = true;
+
         try {
             client.requestLocationUpdates(req, callback, Looper.getMainLooper());
+            Journal.add(this, "Surveillance active, intervalle " + intervalSec + " s");
         } catch (SecurityException e) {
             Notif.show(this, "Portail", "Service: permission localisation manquante");
         }
@@ -111,6 +129,7 @@ public class LocationService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        startUpdates();
         return START_STICKY;
     }
 

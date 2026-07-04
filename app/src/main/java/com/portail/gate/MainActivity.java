@@ -22,7 +22,7 @@ import java.util.Set;
 
 public class MainActivity extends Activity {
 
-    private EditText apiKey, deviceId, lat, lng, radius, radiusClose, btNames;
+    private EditText apiKey, deviceId, lat, lng, radius, radiusClose, interval, btNames;
     private TextView status;
 
     @Override
@@ -36,6 +36,7 @@ public class MainActivity extends Activity {
         lng = findViewById(R.id.lng);
         radius = findViewById(R.id.radius);
         radiusClose = findViewById(R.id.radiusClose);
+        interval = findViewById(R.id.interval);
         btNames = findViewById(R.id.btNames);
         status = findViewById(R.id.status);
 
@@ -46,6 +47,7 @@ public class MainActivity extends Activity {
         lng.setText(p.getString("lng", ""));
         radius.setText(p.getString("radius", "300"));
         radiusClose.setText(p.getString("radiusClose", "100"));
+        interval.setText(p.getString("interval", "15"));
         btNames.setText(p.getString("btNames", "CAR MULTIMEDIA, Moto"));
 
         ((Button) findViewById(R.id.btnPickMap)).setOnClickListener(v -> openMap());
@@ -168,6 +170,7 @@ public class MainActivity extends Activity {
         e.putString("lng", lng.getText().toString().trim());
         e.putString("radius", radius.getText().toString().trim());
         e.putString("radiusClose", radiusClose.getText().toString().trim());
+        e.putString("interval", interval.getText().toString().trim());
         e.putString("btNames", btNames.getText().toString());
         e.apply();
 
