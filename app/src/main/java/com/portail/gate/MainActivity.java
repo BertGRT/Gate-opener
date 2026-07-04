@@ -22,7 +22,7 @@ import java.util.Set;
 
 public class MainActivity extends Activity {
 
-    private EditText apiKey, deviceId, lat, lng, radius, radiusClose, interval, btNames;
+    private EditText apiKey, deviceId, garageDeviceId, lat, lng, radius, radiusClose, interval, btNames, btNamesGarage;
     private TextView status;
 
     @Override
@@ -32,23 +32,27 @@ public class MainActivity extends Activity {
 
         apiKey = findViewById(R.id.apiKey);
         deviceId = findViewById(R.id.deviceId);
+        garageDeviceId = findViewById(R.id.garageDeviceId);
         lat = findViewById(R.id.lat);
         lng = findViewById(R.id.lng);
         radius = findViewById(R.id.radius);
         radiusClose = findViewById(R.id.radiusClose);
         interval = findViewById(R.id.interval);
         btNames = findViewById(R.id.btNames);
+        btNamesGarage = findViewById(R.id.btNamesGarage);
         status = findViewById(R.id.status);
 
         SharedPreferences p = getSharedPreferences("cfg", MODE_PRIVATE);
         apiKey.setText(p.getString("apiKey", ""));
         deviceId.setText(p.getString("deviceId", "6a34287f09efd1746c0ff137"));
+        garageDeviceId.setText(p.getString("garageDeviceId", "6934ac806ebb39d664c84311"));
         lat.setText(p.getString("lat", ""));
         lng.setText(p.getString("lng", ""));
         radius.setText(p.getString("radius", "300"));
         radiusClose.setText(p.getString("radiusClose", "100"));
         interval.setText(p.getString("interval", "15"));
         btNames.setText(p.getString("btNames", "CAR MULTIMEDIA, Moto"));
+        btNamesGarage.setText(p.getString("btNamesGarage", "Moto"));
 
         ((Button) findViewById(R.id.btnPickMap)).setOnClickListener(v -> openMap());
         ((Button) findViewById(R.id.btnPickBt)).setOnClickListener(v -> showBtPicker());
@@ -127,7 +131,7 @@ public class MainActivity extends Activity {
 
         CharSequence[] items = names.toArray(new CharSequence[0]);
         new AlertDialog.Builder(this)
-                .setTitle("Appareils Bluetooth autorises")
+                .setTitle("Appareils Bluetooth autorises (portail)")
                 .setMultiChoiceItems(items, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
                 .setPositiveButton("OK", (dialog, which) -> {
                     StringBuilder sb = new StringBuilder();
@@ -166,12 +170,14 @@ public class MainActivity extends Activity {
         SharedPreferences.Editor e = getSharedPreferences("cfg", MODE_PRIVATE).edit();
         e.putString("apiKey", apiKey.getText().toString().trim());
         e.putString("deviceId", deviceId.getText().toString().trim());
+        e.putString("garageDeviceId", garageDeviceId.getText().toString().trim());
         e.putString("lat", lat.getText().toString().trim());
         e.putString("lng", lng.getText().toString().trim());
         e.putString("radius", radius.getText().toString().trim());
         e.putString("radiusClose", radiusClose.getText().toString().trim());
         e.putString("interval", interval.getText().toString().trim());
         e.putString("btNames", btNames.getText().toString());
+        e.putString("btNamesGarage", btNamesGarage.getText().toString());
         e.apply();
 
         startMonitoring(this);
@@ -181,10 +187,11 @@ public class MainActivity extends Activity {
 
     private void test() {
         status.setText("Test en cours...");
+        final String did = deviceId.getText().toString().trim();
         new Thread(() -> {
-            final String r = SinricClient.open(this);
+            final String r = SinricClient.open(this, did);
             runOnUiThread(() -> status.setText("Test: " + r));
-            Notif.show(this, "Portail", "Test manuel: " + r);
+            Notif.show(this, "Portail", "Test manuel portail: " + r);
         }).start();
     }
 

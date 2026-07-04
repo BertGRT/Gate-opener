@@ -9,16 +9,16 @@ import java.net.URL;
 
 public class SinricClient {
 
-    // Appel HTTP a executer sur un thread de fond (jamais sur le thread principal)
-    static String open(Context ctx) {
+    // Envoie une impulsion (setPowerState On) au device Sinric indique
+    static String open(Context ctx, String deviceId) {
+        if (deviceId == null || deviceId.trim().isEmpty()) return "device vide";
         SharedPreferences p = ctx.getSharedPreferences("cfg", Context.MODE_PRIVATE);
         String apiKey = p.getString("apiKey", "");
-        String deviceId = p.getString("deviceId", "");
         String body = "{\"type\":\"request\",\"action\":\"setPowerState\",\"value\":\"{\\\"state\\\":\\\"On\\\"}\"}";
 
         HttpURLConnection c = null;
         try {
-            URL url = new URL("https://api.sinric.pro/api/v1/devices/" + deviceId + "/action");
+            URL url = new URL("https://api.sinric.pro/api/v1/devices/" + deviceId.trim() + "/action");
             c = (HttpURLConnection) url.openConnection();
             c.setRequestMethod("POST");
             c.setRequestProperty("x-sinric-api-key", apiKey);

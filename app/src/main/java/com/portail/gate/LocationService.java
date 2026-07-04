@@ -19,6 +19,8 @@ import com.google.android.gms.location.Priority;
 
 public class LocationService extends Service {
 
+    private static final float MAX_ACCURACY_M = 100f; // on ignore les fixes moins precis
+
     private FusedLocationProviderClient client;
     private LocationCallback callback;
     private boolean wasInsideOpen = false;
@@ -46,7 +48,6 @@ public class LocationService extends Service {
         startForeground(42, n);
     }
 
-    // (Re)demarre la demande de localisation avec l'intervalle courant
     private void startUpdates() {
         if (client == null) return;
         if (callback != null) {
@@ -84,6 +85,12 @@ public class LocationService extends Service {
     }
 
     private void handleLocation(Location loc) {
+        // Ignore les releves GPS imprecis (evite faux declenchements et fausses notifs)
+        if (loc.hasAccuracy() && loc.getAccuracy() > MAX_ACCURACY_M) {
+            Journal.add(this, "fix imprecis (" + Math.round(loc.getAccuracy()) + " m) -> ignore");
+            return;
+        }
+
         SharedPreferences p = getSharedPreferences("cfg", MODE_PRIVATE);
         double homeLat, homeLng;
         float rOpen, rClose;
@@ -111,15 +118,15 @@ public class LocationService extends Service {
             return;
         }
 
-        // Arrivee : on entre dans le grand rayon
+        // Arrivee : entree dans le grand rayon (la notif eventuelle vient de Trigger si vehicule present)
         if (insideOpen && !wasInsideOpen) {
-            Notif.show(this, "Portail", "ENTREE zone (dist " + Math.round(dist) + " m) -> ouverture");
+            Journal.add(this, "ENTREE zone (dist " + Math.round(dist) + " m)");
             Trigger.checkBtAndOpen(this, "ouverture");
         }
 
-        // Depart : on sort du petit rayon
+        // Depart : sortie du petit rayon
         if (!insideClose && wasInsideClose) {
-            Notif.show(this, "Portail", "SORTIE zone (dist " + Math.round(dist) + " m) -> fermeture");
+            Journal.add(this, "SORTIE zone (dist " + Math.round(dist) + " m)");
             Trigger.checkBtAndOpen(this, "fermeture");
         }
 
