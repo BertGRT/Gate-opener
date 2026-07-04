@@ -55,14 +55,12 @@ public class MainActivity extends Activity {
         btNamesGarage.setText(p.getString("btNamesGarage", "Moto"));
 
         ((Button) findViewById(R.id.btnPickMap)).setOnClickListener(v -> openMap());
-        ((Button) findViewById(R.id.btnPickBt)).setOnClickListener(v -> showBtPicker());
+        ((Button) findViewById(R.id.btnPickBt)).setOnClickListener(v -> showBtPicker(btNames));
+        ((Button) findViewById(R.id.btnPickBtGarage)).setOnClickListener(v -> showBtPicker(btNamesGarage));
         ((Button) findViewById(R.id.btnPerms)).setOnClickListener(v -> requestPerms());
         ((Button) findViewById(R.id.btnSave)).setOnClickListener(v -> save());
-        ((Button) findViewById(R.id.btnTest)).setOnClickListener(v -> test());
-        ((Button) findViewById(R.id.btnSimulate)).setOnClickListener(v -> {
-            Notif.show(this, "Portail", "Simulation d'arrivee (test BT)");
-            Trigger.checkBtAndOpen(this, "ouverture");
-        });
+        ((Button) findViewById(R.id.btnTest)).setOnClickListener(v -> testDevice(deviceId, "portail"));
+        ((Button) findViewById(R.id.btnTestGarage)).setOnClickListener(v -> testDevice(garageDeviceId, "garage"));
         ((Button) findViewById(R.id.btnLog)).setOnClickListener(v -> startActivity(new Intent(this, LogActivity.class)));
     }
 
@@ -86,7 +84,8 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void showBtPicker() {
+    // Selecteur d'appareils Bluetooth appaires, ecrit dans le champ 'target'
+    private void showBtPicker(final EditText target) {
         BluetoothManager bm = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         BluetoothAdapter adapter = (bm != null) ? bm.getAdapter() : null;
         if (adapter == null) {
@@ -119,7 +118,7 @@ public class MainActivity extends Activity {
         }
 
         final Set<String> current = new HashSet<>();
-        for (String s : btNames.getText().toString().split(",")) {
+        for (String s : target.getText().toString().split(",")) {
             String t = s.trim();
             if (!t.isEmpty()) current.add(t);
         }
@@ -131,7 +130,7 @@ public class MainActivity extends Activity {
 
         CharSequence[] items = names.toArray(new CharSequence[0]);
         new AlertDialog.Builder(this)
-                .setTitle("Appareils Bluetooth autorises (portail)")
+                .setTitle("Appareils Bluetooth autorises")
                 .setMultiChoiceItems(items, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
                 .setPositiveButton("OK", (dialog, which) -> {
                     StringBuilder sb = new StringBuilder();
@@ -141,7 +140,7 @@ public class MainActivity extends Activity {
                             sb.append(names.get(i));
                         }
                     }
-                    btNames.setText(sb.toString());
+                    target.setText(sb.toString());
                 })
                 .setNegativeButton("Annuler", null)
                 .show();
@@ -185,13 +184,13 @@ public class MainActivity extends Activity {
         status.setText("Surveillance active (service en fond).");
     }
 
-    private void test() {
-        status.setText("Test en cours...");
-        final String did = deviceId.getText().toString().trim();
+    private void testDevice(final EditText idField, final String label) {
+        status.setText("Test " + label + "...");
+        final String id = idField.getText().toString().trim();
         new Thread(() -> {
-            final String r = SinricClient.open(this, did);
-            runOnUiThread(() -> status.setText("Test: " + r));
-            Notif.show(this, "Portail", "Test manuel portail: " + r);
+            final String r = SinricClient.open(this, id);
+            runOnUiThread(() -> status.setText("Test " + label + ": " + r));
+            Notif.show(this, "Portail", "Test manuel " + label + ": " + r);
         }).start();
     }
 
