@@ -61,7 +61,6 @@ public class MainActivity extends Activity {
         ((Button) findViewById(R.id.btnSave)).setOnClickListener(v -> save());
         ((Button) findViewById(R.id.btnTest)).setOnClickListener(v -> testDevice(deviceId, "portail"));
         ((Button) findViewById(R.id.btnTestGarage)).setOnClickListener(v -> testDevice(garageDeviceId, "garage"));
-        ((Button) findViewById(R.id.btnLog)).setOnClickListener(v -> startActivity(new Intent(this, LogActivity.class)));
     }
 
     private void openMap() {
@@ -180,8 +179,8 @@ public class MainActivity extends Activity {
         e.apply();
 
         startMonitoring(this);
-        Notif.show(this, "Portail", "Surveillance demarree (arrivee + depart)");
-        status.setText("Surveillance active (service en fond).");
+        Notif.show(this, "Portail", "Surveillance demarree (GPS actif seulement en vehicule)");
+        status.setText("Surveillance active (GPS uniquement en vehicule).");
     }
 
     private void testDevice(final EditText idField, final String label) {

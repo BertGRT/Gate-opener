@@ -50,7 +50,6 @@
         <Button android:id="@+id/btnSave" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="2. Enregistrer et activer"/>
         <Button android:id="@+id/btnTest" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Tester ouverture PORTAIL"/>
         <Button android:id="@+id/btnTestGarage" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Tester ouverture GARAGE"/>
-        <Button android:id="@+id/btnLog" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Voir le journal"/>
 
         <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="12dp" android:text=""/>
 

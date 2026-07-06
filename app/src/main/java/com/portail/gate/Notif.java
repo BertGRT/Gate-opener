@@ -9,10 +9,7 @@ public class Notif {
 
     private static int id = 1;
 
-    // Ecrit dans le journal ET affiche une notification
     static void show(Context ctx, String title, String text) {
-        Journal.add(ctx, text);
-
         NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm == null) return;
 

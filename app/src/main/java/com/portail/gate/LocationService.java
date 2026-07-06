@@ -4,9 +4,14 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.location.Location;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.Looper;
 
@@ -19,10 +24,12 @@ import com.google.android.gms.location.Priority;
 
 public class LocationService extends Service {
 
-    private static final float MAX_ACCURACY_M = 100f; // on ignore les fixes moins precis
+    private static final float MAX_ACCURACY_M = 100f;
 
     private FusedLocationProviderClient client;
     private LocationCallback callback;
+    private BroadcastReceiver btReceiver;
+    private boolean gpsActive = false;
     private boolean wasInsideOpen = false;
     private boolean wasInsideClose = false;
     private boolean firstFix = true;
@@ -30,29 +37,51 @@ public class LocationService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        startForegroundNotif();
         client = LocationServices.getFusedLocationProviderClient(this);
-        Journal.add(this, "Service de surveillance demarre");
+        showOngoing("En attente d'un vehicule");
+        registerBt();
     }
 
-    private void startForegroundNotif() {
-        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        NotificationChannel c = new NotificationChannel("portail_svc", "Portail surveillance", NotificationManager.IMPORTANCE_LOW);
-        nm.createNotificationChannel(c);
-        Notification n = new Notification.Builder(this, "portail_svc")
-                .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-                .setContentTitle("Portail")
-                .setContentText("Surveillance arrivee/depart active")
-                .setOngoing(true)
-                .build();
-        startForeground(42, n);
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        // Au demarrage / re-enregistrement : si un vehicule est deja connecte, on lance le GPS
+        BtScan.connectedNames(this, found -> {
+            if (BtScan.anyAuthorized(this, found)) startGps();
+            else stopGps();
+        });
+        return START_STICKY;
     }
 
-    private void startUpdates() {
-        if (client == null) return;
-        if (callback != null) {
-            client.removeLocationUpdates(callback);
+    private void registerBt() {
+        IntentFilter f = new IntentFilter();
+        f.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
+        f.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+        btReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context ctx, Intent intent) {
+                String a = intent.getAction();
+                if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(a)) {
+                    BtScan.connectedNames(LocationService.this, found -> {
+                        if (BtScan.anyAuthorized(LocationService.this, found)) startGps();
+                    });
+                } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(a)) {
+                    BtScan.connectedNames(LocationService.this, found -> {
+                        if (!BtScan.anyAuthorized(LocationService.this, found)) stopGps();
+                    });
+                }
+            }
+        };
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(btReceiver, f, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(btReceiver, f);
         }
+    }
+
+    private void startGps() {
+        if (gpsActive) return;
+        gpsActive = true;
+        firstFix = true;
 
         int intervalSec;
         try {
@@ -66,7 +95,6 @@ public class LocationService extends Service {
         LocationRequest req = new LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, ms)
                 .setMinUpdateIntervalMillis(ms)
                 .build();
-
         callback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult result) {
@@ -74,21 +102,25 @@ public class LocationService extends Service {
                 if (loc != null) handleLocation(loc);
             }
         };
-        firstFix = true;
-
         try {
             client.requestLocationUpdates(req, callback, Looper.getMainLooper());
-            Journal.add(this, "Surveillance active, intervalle " + intervalSec + " s");
+            showOngoing("Vehicule connecte - surveillance GPS active");
         } catch (SecurityException e) {
-            Notif.show(this, "Portail", "Service: permission localisation manquante");
+            gpsActive = false;
+            showOngoing("Permission localisation manquante");
         }
     }
 
+    private void stopGps() {
+        if (!gpsActive) return;
+        gpsActive = false;
+        if (callback != null) client.removeLocationUpdates(callback);
+        showOngoing("En attente d'un vehicule");
+    }
+
     private void handleLocation(Location loc) {
-        // Ignore les releves GPS imprecis (evite faux declenchements et fausses notifs)
         if (loc.hasAccuracy() && loc.getAccuracy() > MAX_ACCURACY_M) {
-            Journal.add(this, "fix imprecis (" + Math.round(loc.getAccuracy()) + " m) -> ignore");
-            return;
+            return; // fix trop imprecis
         }
 
         SharedPreferences p = getSharedPreferences("cfg", MODE_PRIVATE);
@@ -109,7 +141,7 @@ public class LocationService extends Service {
         boolean insideOpen = dist <= rOpen;
         boolean insideClose = dist <= rClose;
 
-        Journal.add(this, "fix: " + Math.round(dist) + " m");
+        showOngoing("Distance " + Math.round(dist) + " m");
 
         if (firstFix) {
             firstFix = false;
@@ -118,15 +150,10 @@ public class LocationService extends Service {
             return;
         }
 
-        // Arrivee : entree dans le grand rayon (la notif eventuelle vient de Trigger si vehicule present)
         if (insideOpen && !wasInsideOpen) {
-            Journal.add(this, "ENTREE zone (dist " + Math.round(dist) + " m)");
             Trigger.checkBtAndOpen(this, "ouverture");
         }
-
-        // Depart : sortie du petit rayon
         if (!insideClose && wasInsideClose) {
-            Journal.add(this, "SORTIE zone (dist " + Math.round(dist) + " m)");
             Trigger.checkBtAndOpen(this, "fermeture");
         }
 
@@ -134,16 +161,30 @@ public class LocationService extends Service {
         wasInsideClose = insideClose;
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        startUpdates();
-        return START_STICKY;
+    private void showOngoing(String text) {
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        NotificationChannel c = new NotificationChannel("portail_svc", "Portail surveillance", NotificationManager.IMPORTANCE_LOW);
+        nm.createNotificationChannel(c);
+        Notification n = new Notification.Builder(this, "portail_svc")
+                .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+                .setContentTitle("Portail")
+                .setContentText(text)
+                .setOngoing(true)
+                .build();
+        startForeground(42, n);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         if (client != null && callback != null) client.removeLocationUpdates(callback);
+        if (btReceiver != null) {
+            try {
+                unregisterReceiver(btReceiver);
+            } catch (Exception e) {
+                // ignore
+            }
+        }
     }
 
     @Override
