@@ -30,8 +30,7 @@ public class LocationService extends Service {
     private LocationCallback callback;
     private BroadcastReceiver btReceiver;
     private boolean gpsActive = false;
-    private boolean wasInsideOpen = false;
-    private boolean wasInsideClose = false;
+    private boolean wasInside = false;
     private boolean firstFix = true;
 
     @Override
@@ -44,7 +43,6 @@ public class LocationService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // Au demarrage / re-enregistrement : si un vehicule est deja connecte, on lance le GPS
         BtScan.connectedNames(this, found -> {
             if (BtScan.anyAuthorized(this, found)) startGps();
             else stopGps();
@@ -125,12 +123,11 @@ public class LocationService extends Service {
 
         SharedPreferences p = getSharedPreferences("cfg", MODE_PRIVATE);
         double homeLat, homeLng;
-        float rOpen, rClose;
+        float rOpen;
         try {
             homeLat = Double.parseDouble(p.getString("lat", "0"));
             homeLng = Double.parseDouble(p.getString("lng", "0"));
             rOpen = Float.parseFloat(p.getString("radius", "300"));
-            rClose = Float.parseFloat(p.getString("radiusClose", "100"));
         } catch (Exception e) {
             return;
         }
@@ -138,27 +135,21 @@ public class LocationService extends Service {
         float[] res = new float[1];
         Location.distanceBetween(loc.getLatitude(), loc.getLongitude(), homeLat, homeLng, res);
         float dist = res[0];
-        boolean insideOpen = dist <= rOpen;
-        boolean insideClose = dist <= rClose;
+        boolean inside = dist <= rOpen;
 
         showOngoing("Distance " + Math.round(dist) + " m");
 
         if (firstFix) {
             firstFix = false;
-            wasInsideOpen = insideOpen;
-            wasInsideClose = insideClose;
+            wasInside = inside;
             return;
         }
 
-        if (insideOpen && !wasInsideOpen) {
-            Trigger.checkBtAndOpen(this, "ouverture");
+        // Arrivee uniquement : entree dans le rayon
+        if (inside && !wasInside) {
+            Trigger.checkBtAndOpen(this);
         }
-        if (!insideClose && wasInsideClose) {
-            Trigger.checkBtAndOpen(this, "fermeture");
-        }
-
-        wasInsideOpen = insideOpen;
-        wasInsideClose = insideClose;
+        wasInside = inside;
     }
 
     private void showOngoing(String text) {

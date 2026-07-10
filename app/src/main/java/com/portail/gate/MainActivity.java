@@ -22,7 +22,7 @@ import java.util.Set;
 
 public class MainActivity extends Activity {
 
-    private EditText apiKey, deviceId, garageDeviceId, lat, lng, radius, radiusClose, interval, btNames, btNamesGarage;
+    private EditText apiKey, deviceId, garageDeviceId, lat, lng, radius, interval, btNames, btNamesGarage;
     private TextView status;
 
     @Override
@@ -36,7 +36,6 @@ public class MainActivity extends Activity {
         lat = findViewById(R.id.lat);
         lng = findViewById(R.id.lng);
         radius = findViewById(R.id.radius);
-        radiusClose = findViewById(R.id.radiusClose);
         interval = findViewById(R.id.interval);
         btNames = findViewById(R.id.btNames);
         btNamesGarage = findViewById(R.id.btNamesGarage);
@@ -49,7 +48,6 @@ public class MainActivity extends Activity {
         lat.setText(p.getString("lat", ""));
         lng.setText(p.getString("lng", ""));
         radius.setText(p.getString("radius", "300"));
-        radiusClose.setText(p.getString("radiusClose", "100"));
         interval.setText(p.getString("interval", "15"));
         btNames.setText(p.getString("btNames", "CAR MULTIMEDIA, Moto"));
         btNamesGarage.setText(p.getString("btNamesGarage", "Moto"));
@@ -57,6 +55,7 @@ public class MainActivity extends Activity {
         ((Button) findViewById(R.id.btnPickMap)).setOnClickListener(v -> openMap());
         ((Button) findViewById(R.id.btnPickBt)).setOnClickListener(v -> showBtPicker(btNames));
         ((Button) findViewById(R.id.btnPickBtGarage)).setOnClickListener(v -> showBtPicker(btNamesGarage));
+        ((Button) findViewById(R.id.btnShowBt)).setOnClickListener(v -> showConnectedBt());
         ((Button) findViewById(R.id.btnPerms)).setOnClickListener(v -> requestPerms());
         ((Button) findViewById(R.id.btnSave)).setOnClickListener(v -> save());
         ((Button) findViewById(R.id.btnTest)).setOnClickListener(v -> testDevice(deviceId, "portail"));
@@ -145,6 +144,18 @@ public class MainActivity extends Activity {
                 .show();
     }
 
+    // Diagnostic : montre les noms des BT reellement connectes (vus par l'app)
+    private void showConnectedBt() {
+        BtScan.connectedNames(this, found -> runOnUiThread(() -> {
+            String msg = found.isEmpty() ? "Aucun BT connecte (profils A2DP/mains-libres)" : found.toString();
+            new AlertDialog.Builder(this)
+                    .setTitle("Bluetooth connectes (vus par l'app)")
+                    .setMessage(msg + "\n\nMets EXACTEMENT ce nom dans les listes autorisees (portail et/ou garage).")
+                    .setPositiveButton("OK", null)
+                    .show();
+        }));
+    }
+
     private void requestPerms() {
         requestPermissions(new String[]{
                 Manifest.permission.ACCESS_FINE_LOCATION,
@@ -172,7 +183,6 @@ public class MainActivity extends Activity {
         e.putString("lat", lat.getText().toString().trim());
         e.putString("lng", lng.getText().toString().trim());
         e.putString("radius", radius.getText().toString().trim());
-        e.putString("radiusClose", radiusClose.getText().toString().trim());
         e.putString("interval", interval.getText().toString().trim());
         e.putString("btNames", btNames.getText().toString());
         e.putString("btNamesGarage", btNamesGarage.getText().toString());
