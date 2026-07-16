@@ -144,13 +144,17 @@ public class MainActivity extends Activity {
                 .show();
     }
 
-    // Diagnostic : montre les noms des BT reellement connectes (vus par l'app)
+    // Diagnostic : ce que voient les profils VS ce que suit le service
     private void showConnectedBt() {
+        final String last = getSharedPreferences("cfg", MODE_PRIVATE).getString("lastConnected", "");
         BtScan.connectedNames(this, found -> runOnUiThread(() -> {
-            String msg = found.isEmpty() ? "Aucun BT connecte (profils A2DP/mains-libres)" : found.toString();
+            String msg = "Profils A2DP / mains-libres :\n"
+                    + (found.isEmpty() ? "(vide)" : found.toString())
+                    + "\n\nSuivi par le service (evenements Bluetooth) :\n"
+                    + (last.isEmpty() ? "(vide)" : last);
             new AlertDialog.Builder(this)
-                    .setTitle("Bluetooth connectes (vus par l'app)")
-                    .setMessage(msg + "\n\nMets EXACTEMENT ce nom dans les listes autorisees (portail et/ou garage).")
+                    .setTitle("Diagnostic Bluetooth")
+                    .setMessage(msg)
                     .setPositiveButton("OK", null)
                     .show();
         }));

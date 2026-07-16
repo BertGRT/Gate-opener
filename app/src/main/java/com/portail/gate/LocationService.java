@@ -22,6 +22,9 @@ import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class LocationService extends Service {
 
     private static final float MAX_ACCURACY_M = 100f;
@@ -33,21 +36,32 @@ public class LocationService extends Service {
     private boolean wasInside = false;
     private boolean firstFix = true;
 
+    // Liste des appareils BT actuellement connectes, tenue a jour par les evenements ACL
+    private final Set<String> connected = new HashSet<>();
+
     @Override
     public void onCreate() {
         super.onCreate();
         client = LocationServices.getFusedLocationProviderClient(this);
         showOngoing("En attente d'un vehicule");
         registerBt();
+        seed();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        BtScan.connectedNames(this, found -> {
-            if (BtScan.anyAuthorized(this, found)) startGps();
-            else stopGps();
-        });
+        seed();
         return START_STICKY;
+    }
+
+    // Au demarrage, on amorce la liste avec ce que les profils voient deja
+    private void seed() {
+        BtScan.connectedNames(this, found -> {
+            synchronized (connected) {
+                connected.addAll(found);
+            }
+            evaluate();
+        });
     }
 
     private void registerBt() {
@@ -58,14 +72,20 @@ public class LocationService extends Service {
             @Override
             public void onReceive(Context ctx, Intent intent) {
                 String a = intent.getAction();
+                BluetoothDevice d = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                String name = nameOf(d);
+                if (name == null) return;
+
                 if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(a)) {
-                    BtScan.connectedNames(LocationService.this, found -> {
-                        if (BtScan.anyAuthorized(LocationService.this, found)) startGps();
-                    });
+                    synchronized (connected) {
+                        connected.add(name);
+                    }
+                    evaluate();
                 } else if (BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(a)) {
-                    BtScan.connectedNames(LocationService.this, found -> {
-                        if (!BtScan.anyAuthorized(LocationService.this, found)) stopGps();
-                    });
+                    synchronized (connected) {
+                        connected.remove(name);
+                    }
+                    evaluate();
                 }
             }
         };
@@ -74,6 +94,29 @@ public class LocationService extends Service {
         } else {
             registerReceiver(btReceiver, f);
         }
+    }
+
+    private String nameOf(BluetoothDevice d) {
+        if (d == null) return null;
+        try {
+            String n = d.getName();
+            return (n != null && !n.isEmpty()) ? n : d.getAddress();
+        } catch (SecurityException e) {
+            return d.getAddress();
+        }
+    }
+
+    // Decide d'allumer ou d'eteindre le GPS selon les appareils connectes
+    private void evaluate() {
+        boolean auth;
+        String csv;
+        synchronized (connected) {
+            auth = BtScan.anyAuthorized(this, connected);
+            csv = String.join(", ", connected);
+        }
+        getSharedPreferences("cfg", MODE_PRIVATE).edit().putString("lastConnected", csv).apply();
+        if (auth) startGps();
+        else stopGps();
     }
 
     private void startGps() {
@@ -145,9 +188,13 @@ public class LocationService extends Service {
             return;
         }
 
-        // Arrivee uniquement : entree dans le rayon
+        // Arrivee : entree dans le rayon
         if (inside && !wasInside) {
-            Trigger.checkBtAndOpen(this);
+            Set<String> snap;
+            synchronized (connected) {
+                snap = new HashSet<>(connected);
+            }
+            Trigger.fireFor(this, snap);
         }
         wasInside = inside;
     }

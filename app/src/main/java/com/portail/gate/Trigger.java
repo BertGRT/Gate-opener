@@ -14,12 +14,8 @@ public class Trigger {
     private static final Map<String, Long> lastAction = new HashMap<>();
     private static final long COOLDOWN_MS = 60000;
 
-    // Ouverture a l'arrivee (plus de fermeture : geree par la tempo du portail)
-    static void checkBtAndOpen(final Context ctx) {
-        BtScan.connectedNames(ctx, found -> act(ctx, found));
-    }
-
-    private static synchronized void act(Context ctx, Set<String> found) {
+    // Ouverture a l'arrivee, selon la liste des appareils BT connectes fournie par le service
+    static synchronized void fireFor(Context ctx, Set<String> found) {
         SharedPreferences p = ctx.getSharedPreferences("cfg", Context.MODE_PRIVATE);
         Set<String> portailVehs = toSet(p.getString("btNames", ""));
         Set<String> garageVehs = toSet(p.getString("btNamesGarage", ""));
